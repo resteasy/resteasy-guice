@@ -51,12 +51,12 @@ You need to use the `GuiceResteasyBootstrapServletContextListener` as follows
 
     <context-param>
         <param-name>resteasy.guice.modules</param-name>
-        <param-value>org.jboss.resteasy.examples.guice.hello.HelloModule</param-value>
+        <param-value>dev.resteasy.examples.guice.hello.HelloModule</param-value>
     </context-param>
 
     <listener>
         <listener-class>
-            org.jboss.resteasy.plugins.guice.GuiceResteasyBootstrapServletContextListener
+            dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener
         </listener-class>
     </listener>
 
@@ -119,7 +119,7 @@ If this value is not specified, RESTEasy uses whatever Guice's default is.
 
     <context-param>
         <param-name>resteasy.guice.modules</param-name>
-        <param-value>org.jboss.resteasy.examples.guice.hello.HelloModule</param-value>
+        <param-value>dev.resteasy.examples.guice.hello.HelloModule</param-value>
     </context-param>
 
     <context-param>
@@ -129,7 +129,7 @@ If this value is not specified, RESTEasy uses whatever Guice's default is.
 
     <listener>
         <listener-class>
-            org.jboss.resteasy.plugins.guice.GuiceResteasyBootstrapServletContextListener
+            dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener
         </listener-class>
     </listener>
 
@@ -167,7 +167,7 @@ Override `getStage(ServletContext)` to set the Stage yourself.
     <!-- other tags omitted -->
     <listener>
       <listener-class>
-         org.jboss.resteasy.plugins.guice.GuiceResteasyBootstrapServletContextListener
+         dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener
       </listener-class>
     </listener>
 </web-app>
