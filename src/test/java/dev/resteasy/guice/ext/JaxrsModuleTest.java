@@ -1,3 +1,8 @@
+/*
+ * Copyright The RESTEasy Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package dev.resteasy.guice.ext;
 
 import jakarta.ws.rs.GET;

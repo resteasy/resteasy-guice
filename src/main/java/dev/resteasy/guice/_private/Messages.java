@@ -1,3 +1,8 @@
+/*
+ * Copyright The RESTEasy Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package dev.resteasy.guice._private;
 
 import java.lang.invoke.MethodHandles;
@@ -6,13 +11,6 @@ import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.Message.Format;
 import org.jboss.logging.annotations.MessageBundle;
 
-/**
- *
- * @author <a href="ron.sigal@jboss.com">Ron Sigal</a>
- * @version $Revision: 1.1 $
- *
- *          Copyright Aug 27, 2015
- */
 @MessageBundle(projectCode = "RESTEASY-GUICE")
 public interface Messages {
     Messages MESSAGES = org.jboss.logging.Messages.getBundle(MethodHandles.lookup(), Messages.class);
