@@ -16,7 +16,7 @@
     </parent>
     <groupId>dev.resteasy.guice</groupId>
     <artifactId>resteasy-guice</artifactId>
-    <version>1.0.0.Alpha1-SNAPSHOT</version>
+    <version>1.0.0.Alpha1</version>
     <name>RESTEasy Guice</name>
     <description/>
 
