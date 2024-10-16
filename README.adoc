@@ -188,3 +188,37 @@ public class MyServletContextListener extends GuiceResteasyBootstrapServletConte
     }
 }
 ----
+== Migrating from prior editions of RESTEasy Guice
+The group name and package name have both changed. If you are migrating from prior editions of RESTEasy Guice, you will need to update your dependencies and imports.
+
+The new group name is 'dev.resteasy.guice' and the new package name is 'dev.resteasy.guice'.
+
+=== Dependencies
+For example code for the dependencies see: https://central.sonatype.com/artifact/dev.resteasy.guice/resteasy-guice
+
+=== Imports
+.Bulleted
+* Previous package name: org.jboss.resteasy.plugins.guice.
+* Current package name: dev.resteasy.guice
+
+This update may be as simple as searching for org.jboss.resteasy.plugins.guice
+and replacing it with dev.resteasy.guice.
+
+For most projects, that will be either changing the
+entry in web.xml to:
+
+[source, xml]
+----
+    <listener>
+        <listener-class>
+            dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener
+        </listener-class>
+    </listener>
+----
+
+Or changing the import statement in a custom listener to:
+
+[source, java]
+----
+import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;
+----
