@@ -22,7 +22,7 @@
 
     <properties>
         <!-- Dependency Versions, keep in alphabetical order -->
-        <version.jakarta.ee>10.0.0</version.jakarta.ee>
+        <version.jakarta.ee>11.0.0</version.jakarta.ee>
         <!-- Override transitive dependency coming in via Guice. The Guava version brought in by Guice has a security vulnerability -->
         <!-- Check to see if it can be removed when updating Guice. -->
         <version.com.google.guava.guava>33.4.6-jre</version.com.google.guava.guava>
