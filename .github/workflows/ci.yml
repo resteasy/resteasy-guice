@@ -38,7 +38,7 @@ jobs:
       - name: Build with Java ${{ matrix.java }} - ${{ matrix.os }}
         run:  |
           mvn -ntp clean install -U -B -fae
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: surefire-reports-${{ matrix.os }}-${{ matrix.java }}
