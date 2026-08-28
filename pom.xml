@@ -4,8 +4,7 @@
   ~ SPDX-License-Identifier: Apache-2.0
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -16,7 +15,7 @@
     </parent>
     <groupId>dev.resteasy.guice</groupId>
     <artifactId>resteasy-guice</artifactId>
-    <version>1.0.0.Alpha2-SNAPSHOT</version>
+    <version>1.0.0.Beta1</version>
     <name>RESTEasy Guice</name>
     <description>RESTEasy Guice Integration</description>
     <url>https://resteasy.dev</url>
@@ -50,7 +49,7 @@
         <connection>scm:git:git://github.com/resteasy/resteasy-guice.git</connection>
         <developerConnection>scm:git:git@github.com:resteasy/resteasy-guice.git</developerConnection>
         <url>https://github.com/resteasy/resteasy-guice/tree/main/</url>
-        <tag>HEAD</tag>
+        <tag>v1.0.0.Beta1</tag>
     </scm>
 
     <issueManagement>
