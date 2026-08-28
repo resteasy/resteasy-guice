@@ -19,6 +19,7 @@ public class VariantListBuilderProvider implements Provider<Variant.VariantListB
         this.runtimeDelegate = runtimeDelegate;
     }
 
+    @Override
     public Variant.VariantListBuilder get() {
         return runtimeDelegate.createVariantListBuilder();
     }

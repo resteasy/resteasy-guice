@@ -7,59 +7,41 @@ package dev.resteasy.guice;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
-import org.jboss.resteasy.plugins.server.netty.NettyJaxrsServer;
-import org.jboss.resteasy.spi.Dispatcher;
-import org.jboss.resteasy.spi.ResteasyDeployment;
-import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.google.inject.Binder;
-import com.google.inject.Guice;
 import com.google.inject.Module;
 
 public class GuiceProviderTest {
-    private static NettyJaxrsServer server;
-    private static Dispatcher dispatcher;
-
-    @BeforeAll
-    public static void beforeClass() throws Exception {
-        server = new NettyJaxrsServer();
-        server.setPort(TestPortProvider.getPort());
-        server.setRootResourcePath("/");
-        ResteasyDeployment deployment = server.getDeployment();
-        deployment.start();
-        dispatcher = deployment.getDispatcher();
-        server.start();
-    }
-
-    @AfterAll
-    public static void afterClass() throws Exception {
-        server.stop();
-        server = null;
-        dispatcher = null;
-    }
+    @RegisterExtension
+    private static final ResteasyGuiceTestExtension TEST_EXTENSION = new ResteasyGuiceTestExtension(TestModule.class);
 
     @Test
     public void testProvider() {
-        final Module module = new Module() {
-            @Override
-            public void configure(final Binder binder) {
-                binder.bind(TestExceptionProvider.class);
-                binder.bind(TestResource.class).to(TestResourceException.class);
+        try (Client client = ClientBuilder.newClient()) {
+            try (Response response = client.target(TEST_EXTENSION.getBaseUri()).path("test").request().get()) {
+                Assertions.assertEquals(200, response.getStatus(), () -> "Expected a 200 status but got %d: %s"
+                        .formatted(response.getStatus(), response.readEntity(String.class)));
+                Assertions.assertEquals("exception", response.readEntity(String.class));
             }
-        };
-        final ModuleProcessor processor = new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory());
-        processor.processInjector(Guice.createInjector(module));
-        final TestResource resource = TestPortProvider.createProxy(TestResource.class, TestPortProvider.generateBaseUrl());
-        Assertions.assertEquals("exception", resource.getName());
-        dispatcher.getRegistry().removeRegistrations(TestResource.class);
+        }
+    }
+
+    public static class TestModule implements Module {
+
+        @Override
+        public void configure(final Binder binder) {
+            binder.bind(TestExceptionProvider.class);
+            binder.bind(TestResource.class).to(TestResourceException.class);
+        }
     }
 
     @Path("test")

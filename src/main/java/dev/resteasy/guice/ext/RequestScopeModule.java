@@ -32,11 +32,11 @@ public class RequestScopeModule extends AbstractModule {
         bindScope(RequestScoped.class, new Scope() {
             @Override
             public <T> Provider<T> scope(final Key<T> key, final Provider<T> creator) {
-                return new Provider<T>() {
+                return new Provider<>() {
                     @SuppressWarnings("unchecked")
                     @Override
                     public T get() {
-                        Class<T> instanceClass = (Class<T>) key.getTypeLiteral().getType();
+                        final Class<T> instanceClass = (Class<T>) key.getTypeLiteral().getType();
                         T instance = ResteasyContext.getContextData(instanceClass);
 
                         if (instance == null) {
@@ -55,14 +55,14 @@ public class RequestScopeModule extends AbstractModule {
             }
         });
 
-        bind(HttpServletRequest.class).toProvider(new ResteasyContextProvider<HttpServletRequest>(HttpServletRequest.class))
+        bind(HttpServletRequest.class).toProvider(new ResteasyContextProvider<>(HttpServletRequest.class))
                 .in(RequestScoped.class);
-        bind(HttpServletResponse.class).toProvider(new ResteasyContextProvider<HttpServletResponse>(HttpServletResponse.class))
+        bind(HttpServletResponse.class).toProvider(new ResteasyContextProvider<>(HttpServletResponse.class))
                 .in(RequestScoped.class);
-        bind(Request.class).toProvider(new ResteasyContextProvider<Request>(Request.class)).in(RequestScoped.class);
-        bind(HttpHeaders.class).toProvider(new ResteasyContextProvider<HttpHeaders>(HttpHeaders.class)).in(RequestScoped.class);
-        bind(UriInfo.class).toProvider(new ResteasyContextProvider<UriInfo>(UriInfo.class)).in(RequestScoped.class);
-        bind(SecurityContext.class).toProvider(new ResteasyContextProvider<SecurityContext>(SecurityContext.class))
+        bind(Request.class).toProvider(new ResteasyContextProvider<>(Request.class)).in(RequestScoped.class);
+        bind(HttpHeaders.class).toProvider(new ResteasyContextProvider<>(HttpHeaders.class)).in(RequestScoped.class);
+        bind(UriInfo.class).toProvider(new ResteasyContextProvider<>(UriInfo.class)).in(RequestScoped.class);
+        bind(SecurityContext.class).toProvider(new ResteasyContextProvider<>(SecurityContext.class))
                 .in(RequestScoped.class);
         //      bind(ServletConfig.class).toProvider(new ResteasyContextProvider<ServletConfig>(ServletConfig.class)).in(Singleton.class);
         //      bind(ServletContext.class).toProvider(new ResteasyContextProvider<ServletContext>(ServletContext.class)).in(Singleton.class);

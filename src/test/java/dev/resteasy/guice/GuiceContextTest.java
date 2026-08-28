@@ -12,112 +12,82 @@ import java.util.Arrays;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.ParamConverter;
 import jakarta.ws.rs.ext.ParamConverterProvider;
 import jakarta.ws.rs.ext.Provider;
 
-import org.jboss.resteasy.plugins.server.netty.NettyJaxrsServer;
-import org.jboss.resteasy.spi.Dispatcher;
-import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.google.inject.Binder;
-import com.google.inject.Guice;
 import com.google.inject.Module;
 
 public class GuiceContextTest {
-    private NettyJaxrsServer server;
-    private Dispatcher dispatcher;
-
-    @BeforeEach
-    public void before() throws Exception {
-        server = new NettyJaxrsServer();
-        server.setPort(TestPortProvider.getPort());
-        server.setRootResourcePath("/");
-        server.getDeployment().start();
-        server.start();
-
-        dispatcher = server.getDeployment().getDispatcher();
-    }
-
-    @AfterEach
-    public void after() throws Exception {
-        server.stop();
-        server = null;
-        dispatcher = null;
-    }
+    @RegisterExtension
+    private static final ResteasyGuiceTestExtension TEST_EXTENSION = new ResteasyGuiceTestExtension(TestModule.class);
 
     @Test
     public void testMethodInjection() {
-        final Module module = new Module() {
-            @Override
-            public void configure(final Binder binder) {
-                binder.bind(MethodTestResource.class);
+        try (Client client = ClientBuilder.newClient()) {
+            try (Response response = client.target(TEST_EXTENSION.getBaseUri()).path("method").request().get()) {
+                Assertions.assertEquals(200, response.getStatus(), () -> "Expected a 200 status but got %d: %s"
+                        .formatted(response.getStatus(), response.readEntity(String.class)));
+                Assertions.assertEquals("method", response.readEntity(String.class));
             }
-        };
-        final ModuleProcessor processor = new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory());
-        processor.processInjector(Guice.createInjector(module));
-        final TestResource resource = TestPortProvider.createProxy(TestResource.class, TestPortProvider.generateBaseUrl());
-        Assertions.assertEquals("method", resource.getName());
-        dispatcher.getRegistry().removeRegistrations(MethodTestResource.class);
+        }
     }
 
     @Test
     public void testFieldInjection() {
-        final Module module = new Module() {
-            @Override
-            public void configure(final Binder binder) {
-                binder.bind(FieldTestResource.class);
+        try (Client client = ClientBuilder.newClient()) {
+            try (Response response = client.target(TEST_EXTENSION.getBaseUri()).path("field").request().get()) {
+                Assertions.assertEquals(200, response.getStatus(), () -> "Expected a 200 status but got %d: %s"
+                        .formatted(response.getStatus(), response.readEntity(String.class)));
+                Assertions.assertEquals("field", response.readEntity(String.class));
             }
-        };
-        final ModuleProcessor processor = new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory());
-        processor.processInjector(Guice.createInjector(module));
-        final TestResource resource = TestPortProvider.createProxy(TestResource.class, TestPortProvider.generateBaseUrl());
-        Assertions.assertEquals("field", resource.getName());
-        dispatcher.getRegistry().removeRegistrations(FieldTestResource.class);
+        }
     }
 
     @Test
-    public void testArbitraryInjection() {
-        final Module module = new Module() {
-            public void configure(final Binder binder) {
-                // currently the order is important, this test does not fail, if we bind the classes in revers order
-                binder.bind(ConversionTestResource.class);
-                binder.bind(IntarrayConverterProvider.class);
+    public void testParamConversion() {
+        try (Client client = ClientBuilder.newClient()) {
+            try (Response response = client.target(TEST_EXTENSION.getBaseUri()).path("test")
+                    .queryParam("values", "1,2,3").request().get()) {
+                Assertions.assertEquals(200, response.getStatus(), () -> "Expected a 200 status but got %d: %s"
+                        .formatted(response.getStatus(), response.readEntity(String.class)));
+                Assertions.assertEquals("6", response.readEntity(String.class));
             }
-        };
-        final ModuleProcessor processor = new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory());
-        processor.processInjector(Guice.createInjector(module));
-        TestPortProvider.createProxy(TestResource.class, TestPortProvider.generateBaseUrl());
+        }
     }
 
-    //@Test // not (yet) supprted
-    public void testConstructorInjection() {
-        final Module module = new Module() {
-            @Override
-            public void configure(final Binder binder) {
-                binder.bind(ConstructorTestResource.class);
+    @Test
+    public void testParamConversionAbsent() {
+        try (Client client = ClientBuilder.newClient()) {
+            try (Response response = client.target(TEST_EXTENSION.getBaseUri()).path("test").request().get()) {
+                Assertions.assertEquals(200, response.getStatus(), () -> "Expected a 200 status but got %d: %s"
+                        .formatted(response.getStatus(), response.readEntity(String.class)));
+                Assertions.assertEquals("[]", response.readEntity(String.class));
             }
-        };
-        final ModuleProcessor processor = new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory());
-        processor.processInjector(Guice.createInjector(module));
-        final TestResource resource = TestPortProvider.createProxy(TestResource.class, TestPortProvider.generateBaseUrl());
-        Assertions.assertEquals("constructor", resource.getName());
-        dispatcher.getRegistry().removeRegistrations(ConstructorTestResource.class);
+        }
     }
 
-    @Path("test")
-    public interface TestResource {
-        @GET
-        String getName();
+    public static class TestModule implements Module {
+        @Override
+        public void configure(final Binder binder) {
+            binder.bind(MethodTestResource.class);
+            binder.bind(FieldTestResource.class);
+            binder.bind(ConversionTestResource.class);
+            binder.bind(IntarrayConverterProvider.class);
+        }
     }
 
-    @Path("test")
+    @Path("method")
     public static class MethodTestResource {
         @GET
         public String getName(final @Context UriInfo uriInfo) {
@@ -126,24 +96,9 @@ public class GuiceContextTest {
         }
     }
 
-    @Path("test")
+    @Path("field")
     public static class FieldTestResource {
         private @Context UriInfo uriInfo;
-
-        @GET
-        public String getName() {
-            Assertions.assertNotNull(uriInfo);
-            return "field";
-        }
-    }
-
-    @Path("test")
-    public static class ConstructorTestResource {
-        private final UriInfo uriInfo;
-
-        public ConstructorTestResource(@Context final UriInfo uriInfo) {
-            this.uriInfo = uriInfo;
-        }
 
         @GET
         public String getName() {

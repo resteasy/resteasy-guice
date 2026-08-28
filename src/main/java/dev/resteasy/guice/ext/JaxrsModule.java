@@ -18,6 +18,7 @@ import com.google.inject.Module;
 
 public class JaxrsModule implements Module {
 
+    @Override
     public void configure(final Binder binder) {
         binder.bind(ClientHttpEngine.class).to(ApacheHttpClient43Engine.class);
         binder.bind(RuntimeDelegate.class).toInstance(RuntimeDelegate.getInstance());

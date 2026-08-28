@@ -19,6 +19,7 @@ public class ResponseBuilderProvider implements Provider<Response.ResponseBuilde
         this.runtimeDelegate = runtimeDelegate;
     }
 
+    @Override
     public Response.ResponseBuilder get() {
         return runtimeDelegate.createResponseBuilder();
     }

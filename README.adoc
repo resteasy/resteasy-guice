@@ -63,7 +63,7 @@ You need to use the `GuiceResteasyBootstrapServletContextListener` as follows
     <servlet>
         <servlet-name>Resteasy</servlet-name>
         <servlet-class>
-            org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher
+            org.jboss.resteasy.plugins.server.servlet.HttpServlet30Dispatcher
         </servlet-class>
     </servlet>
 
@@ -79,31 +79,61 @@ You need to use the `GuiceResteasyBootstrapServletContextListener` as follows
 Also notice that there is a `resteasy.guice.modules` context-param.
 This can take a comma delimited list of class names that are Guice Modules.
 
+== Registering resources and providers
+
+Guice does not scan the classpath, so RESTEasy Guice can only see what your modules explicitly bind.
+Every `@Path` root resource and every `@Provider` must be bound in one of your modules; an unbound resource is simply not registered and its endpoints return `404`.
+
+[source,java]
+----
+public class MyModule implements Module {
+    @Override
+    public void configure(final Binder binder) {
+        binder.bind(HelloResource.class);              // a @Path resource
+        binder.bind(MyExceptionMapper.class);          // an @Provider
+        binder.bind(GreetingService.class).to(GreetingServiceImpl.class);
+    }
+}
+----
+
+Resources are instantiated by Guice, so constructor injection uses Guice bindings.
+This means the Jakarta REST `@Context` annotation cannot be used on a constructor parameter — RESTEasy performs `@Context` injection on fields and setters only, after Guice has created the instance.
+To inject the request-scoped context objects (`UriInfo`, `HttpHeaders`, etc.) through a constructor, install the `RequestScopeModule` (see below) and use a plain `@Inject` constructor.
+
 == Request Scope
 
-Add the `RequestScopeModule` to your modules to allow objects to be scoped to the HTTP request by adding the `@RequestScoped` annotation to your fields in resource classes.
-All the objects injectable via the `@Context` annotation are  also injectable, except `ServletConfig` and `ServletContext`.
-Note that `RequestScopeModule` will already be added if any of your modules extends `com.google.inject.servlet.ServletModule`.
-In such cases you should not add it again to avoid injector creation errors.
+Add the `RequestScopeModule` to your modules to make the Jakarta REST context objects injectable with a plain Guice `@Inject`, bound to the current HTTP request.
+The following types are bound: `UriInfo`, `HttpHeaders`, `Request`, `SecurityContext`, `HttpServletRequest`, and `HttpServletResponse` (`ServletConfig` and `ServletContext` are not bound).
 
 [source,java]
 ----
 
 import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.UriInfo;
 
-import dev.resteasy.guice.RequestScoped;
+@Path("example")
+public class ExampleResource {
+    private final UriInfo uriInfo;
 
-public class MyClass {
-    @Inject @RequestScoped @Context
-    private HttpRequest request;
+    @Inject
+    public ExampleResource(final UriInfo uriInfo) {
+        this.uriInfo = uriInfo;
+    }
+
+    @GET
+    public String get() {
+        return uriInfo.getRequestUri().toString();
+    }
 }
 ----
 
+The scope is also available directly as the `dev.resteasy.guice.RequestScoped` annotation for binding your own request-scoped objects.
+
 == Binding Jakarta REST utilities
 
-Add the `JaxrsModule` to bind `jakarta.ws.rs.ext.RuntimeDelegate`, `jakarta.ws.rs.core.Response.ResponseBuilder`, `jakarta.ws.rs.core.UriBuilder`, `jakarta.ws.rs.core.Variant.VariantListBuilder` and `org.jboss.resteasy.client.jaxrs.ClientHttpEngine`.
+Add the `JaxrsModule` to bind the Jakarta REST utility factories so they can be injected: `jakarta.ws.rs.ext.RuntimeDelegate`, `jakarta.ws.rs.core.Response.ResponseBuilder`, `jakarta.ws.rs.core.UriBuilder`, and `jakarta.ws.rs.core.Variant.VariantListBuilder`.
 
 == Configuring Stage
 
@@ -135,7 +165,7 @@ If this value is not specified, RESTEasy uses whatever Guice's default is.
     <servlet>
         <servlet-name>Resteasy</servlet-name>
         <servlet-class>
-            org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher
+            org.jboss.resteasy.plugins.server.servlet.HttpServlet30Dispatcher
         </servlet-class>
     </servlet>
 
@@ -235,12 +265,10 @@ Once everything is setup, you simply need to run the `./release.sh` script. Ther
 
 By default the release version cannot contain `SNAPSHOT` and the development version, must container `SNAPSHOT`.
 
+.Example Command
 [source,bash]
 ----
-.Example Command
-----
 ./release -r 1.0.0.Final -d 1.0.1.Final-SNAPSHOT
-----
 ----
 
 === Supported Arguments
