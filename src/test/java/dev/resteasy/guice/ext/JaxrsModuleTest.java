@@ -5,71 +5,53 @@
 
 package dev.resteasy.guice.ext;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.Variant;
 import jakarta.ws.rs.ext.RuntimeDelegate;
 
 import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
-import org.jboss.resteasy.plugins.server.netty.NettyJaxrsServer;
-import org.jboss.resteasy.spi.Dispatcher;
-import org.jboss.resteasy.spi.ResteasyDeployment;
-import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-import dev.resteasy.guice.ModuleProcessor;
+import dev.resteasy.guice.ResteasyGuiceTestExtension;
 
 import com.google.inject.Binder;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
 import com.google.inject.Module;
 
 public class JaxrsModuleTest {
-    private static NettyJaxrsServer server;
-    private static Dispatcher dispatcher;
-
-    @BeforeAll
-    public static void beforeClass() throws Exception {
-        server = new NettyJaxrsServer();
-        server.setPort(TestPortProvider.getPort());
-        server.setRootResourcePath("/");
-        ResteasyDeployment deployment = server.getDeployment();
-        deployment.start();
-        dispatcher = deployment.getDispatcher();
-        server.start();
-    }
-
-    @AfterAll
-    public static void afterClass() throws Exception {
-        server.stop();
-        server = null;
-        dispatcher = null;
-    }
+    @RegisterExtension
+    private static final ResteasyGuiceTestExtension TEST_EXTENSION = new ResteasyGuiceTestExtension(TestModule.class,
+            JaxrsModule.class);
 
     @Test
     public void testInjection() {
-        final Module module = new Module() {
-            @Override
-            public void configure(final Binder binder) {
-                binder.bind(TestResource.class).to(JaxrsTestResource.class);
+        try (Client client = ClientBuilder.newClient()) {
+            try (Response response = client.target(TEST_EXTENSION.getBaseUri()).path("test").request().get()) {
+                Assertions.assertEquals(200, response.getStatus(), () -> "Expected a 200 status but got %d: %s"
+                        .formatted(response.getStatus(), response.readEntity(String.class)));
+                Assertions.assertEquals("ok", response.readEntity(String.class));
             }
-        };
-        final ModuleProcessor processor = new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory());
-        processor.processInjector(Guice.createInjector(module, new JaxrsModule()));
-        final TestResource resource = TestPortProvider.createProxy(TestResource.class, TestPortProvider.generateBaseUrl());
-        Assertions.assertEquals("ok", resource.getName());
-        dispatcher.getRegistry().removeRegistrations(TestResource.class);
+        }
     }
 
     @Path("test")
     public interface TestResource {
         @GET
         String getName();
+    }
+
+    public static class TestModule implements Module {
+        @Override
+        public void configure(final Binder binder) {
+            binder.bind(TestResource.class).to(JaxrsTestResource.class);
+        }
     }
 
     public static class JaxrsTestResource implements TestResource {

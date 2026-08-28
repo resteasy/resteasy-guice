@@ -15,6 +15,11 @@ import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import com.google.inject.Provider;
 
+/**
+ * A RESTEasy {@link ResourceFactory} backed by a Guice {@link Provider}. Each request obtains a fresh resource
+ * instance from {@link Provider#get()} (so the resource's Guice scope governs its lifecycle) and then runs
+ * RESTEasy property injection ({@code @Context} fields and setters) on it.
+ */
 public class GuiceResourceFactory implements ResourceFactory {
 
     private final Provider<?> provider;
@@ -26,11 +31,13 @@ public class GuiceResourceFactory implements ResourceFactory {
         this.scannableClass = scannableClass;
     }
 
+    @Override
     public Class<?> getScannableClass() {
         return scannableClass;
     }
 
-    public void registered(ResteasyProviderFactory factory) {
+    @Override
+    public void registered(final ResteasyProviderFactory factory) {
         propertyInjector = factory.getInjectorFactory().createPropertyInjector(scannableClass, factory);
     }
 
@@ -38,15 +45,17 @@ public class GuiceResourceFactory implements ResourceFactory {
     public Object createResource(final HttpRequest request, final HttpResponse response,
             final ResteasyProviderFactory factory) {
         final Object resource = provider.get();
-        CompletionStage<Void> propertyStage = propertyInjector.inject(request, response, resource, true);
+        final CompletionStage<Void> propertyStage = propertyInjector.inject(request, response, resource, true);
         return propertyStage == null ? resource
                 : propertyStage
                         .thenApply(v -> resource);
     }
 
+    @Override
     public void requestFinished(final HttpRequest request, final HttpResponse response, final Object resource) {
     }
 
+    @Override
     public void unregistered() {
     }
 }

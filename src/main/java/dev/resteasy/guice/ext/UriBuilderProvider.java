@@ -19,6 +19,7 @@ public class UriBuilderProvider implements Provider<UriBuilder> {
         this.runtimeDelegate = runtimeDelegate;
     }
 
+    @Override
     public UriBuilder get() {
         return runtimeDelegate.createUriBuilder();
     }

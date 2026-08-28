@@ -31,6 +31,22 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.Stage;
 
+/**
+ * A {@link ServletContextListener} that bootstraps RESTEasy with Guice. Register it in {@code web.xml} (or an
+ * equivalent programmatic servlet setup) alongside the RESTEasy dispatcher servlet.
+ * <p>
+ * On {@link #contextInitialized(ServletContextEvent) context initialization} it builds a Guice {@link Injector}
+ * from the configured {@link Module}s and hands it to a {@link ModuleProcessor}, which registers every bound
+ * {@code @Path} root resource and {@code @Provider} type with RESTEasy. Modules are, by default, taken from the
+ * comma-separated {@code resteasy.guice.modules} context-param and instantiated with their no-arg constructor;
+ * the Guice {@link Stage} may be set with the {@code resteasy.guice.stage} context-param.
+ * <p>
+ * The behavior can be customized by subclassing and overriding {@link #getModules(ServletContext)},
+ * {@link #getStage(ServletContext)}, or {@link #withInjector(Injector)}; register the subclass as the listener.
+ * If a parent {@link Injector} is available via {@link Inject field injection}, a child injector is created from
+ * it instead. No-arg {@link PostConstruct} and {@link PreDestroy} methods on module instances are invoked on
+ * context initialization and destruction, respectively.
+ */
 public class GuiceResteasyBootstrapServletContextListener extends ResteasyBootstrap implements ServletContextListener {
 
     private List<? extends Module> modules;
@@ -71,18 +87,20 @@ public class GuiceResteasyBootstrapServletContextListener extends ResteasyBootst
     }
 
     /**
-     * Override this method to interact with the {@link Injector} after it has been created. The default is no-op.
+     * Override this method to interact with the {@link Injector} after it has been created. The default is a no-op.
      *
-     * @param injector
+     * @param injector the fully-created injector for this deployment
      */
     protected void withInjector(Injector injector) {
     }
 
     /**
-     * Override this method to set the Stage. By default it is taken from resteasy.guice.stage context param.
+     * Override this method to set the Guice {@link Stage}. By default, it is taken from the
+     * {@code resteasy.guice.stage} context-param, or {@code null} (Guice's own default) if that is not set.
      *
-     * @param context
-     * @return Guice Stage
+     * @param context the servlet context for this deployment
+     *
+     * @return the Guice {@link Stage} to create the injector with, or {@code null} to use Guice's default
      */
     protected Stage getStage(ServletContext context) {
         final String stageAsString = context.getInitParameter("resteasy.guice.stage");
@@ -97,13 +115,16 @@ public class GuiceResteasyBootstrapServletContextListener extends ResteasyBootst
     }
 
     /**
-     * Override this method to instantiate your {@link Module}s yourself.
+     * Override this method to instantiate your {@link Module}s yourself, for example when a module needs
+     * constructor arguments. The default reads the comma-separated {@code resteasy.guice.modules} context-param
+     * and instantiates each listed class with its no-arg constructor.
      *
-     * @param context
-     * @return
+     * @param context the servlet context for this deployment
+     *
+     * @return the modules to build the injector from; never {@code null}
      */
     protected List<? extends Module> getModules(final ServletContext context) {
-        final List<Module> result = new ArrayList<Module>();
+        final List<Module> result = new ArrayList<>();
         final String modulesString = context.getInitParameter("resteasy.guice.modules");
         if (modulesString != null) {
             final String[] moduleStrings = modulesString.trim().split(",");
@@ -111,13 +132,12 @@ public class GuiceResteasyBootstrapServletContextListener extends ResteasyBootst
                 try {
                     LogMessages.LOGGER.info(Messages.MESSAGES.foundModule(moduleString));
                     final Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(moduleString.trim());
-                    final Module module = (Module) clazz.newInstance();
+                    final Module module = (Module) clazz.getDeclaredConstructor().newInstance();
                     result.add(module);
-                } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+                } catch (ReflectiveOperationException e) {
                     throw new RuntimeException(e);
                 }
             }
-
         }
         return result;
     }
@@ -128,9 +148,9 @@ public class GuiceResteasyBootstrapServletContextListener extends ResteasyBootst
     }
 
     private void triggerAnnotatedMethods(final Class<? extends Annotation> annotationClass) {
-        for (Module module : this.modules) {
+        for (final Module module : this.modules) {
             final Method[] methods = module.getClass().getMethods();
-            for (Method method : methods) {
+            for (final Method method : methods) {
                 if (method.isAnnotationPresent(annotationClass)) {
                     if (method.getParameterTypes().length > 0) {
                         LogMessages.LOGGER.warn(Messages.MESSAGES.cannotExecute(module.getClass().getSimpleName(),
@@ -139,10 +159,7 @@ public class GuiceResteasyBootstrapServletContextListener extends ResteasyBootst
                     }
                     try {
                         method.invoke(module);
-                    } catch (InvocationTargetException ex) {
-                        LogMessages.LOGGER
-                                .warn(Messages.MESSAGES.problemRunningAnnotationMethod(annotationClass.getSimpleName()), ex);
-                    } catch (IllegalAccessException ex) {
+                    } catch (InvocationTargetException | IllegalAccessException ex) {
                         LogMessages.LOGGER
                                 .warn(Messages.MESSAGES.problemRunningAnnotationMethod(annotationClass.getSimpleName()), ex);
                     }
