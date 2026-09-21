@@ -79,7 +79,7 @@
         <version.org.junit>6.1.3</version.org.junit>
 
         <!-- Plugins versions -->
-        <version.spotless-maven-plugin>3.10.1</version.spotless-maven-plugin>
+        <version.spotless-maven-plugin>3.10.2</version.spotless-maven-plugin>
 
         <!-- Please note this is an undocumented and fragile property as it may not work in the future.
              However, for now it is all we have to find the root project directory. -->
